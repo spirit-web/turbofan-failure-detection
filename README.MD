@@ -1,121 +1,90 @@
-# Turbofan Failure Detection
+# Turbofan Failure Detection — TCN vs. Autoencoder
 
+## The Case
 
-Machine learning project using the **NASA C-MAPSS Turbofan Engine Degradation Dataset** to investigate whether engine degradation can be detected before failure.
+Can we detect that a jet engine is heading toward failure — before it actually happens?
 
+Unplanned engine failure is expensive and, in the worst case, dangerous. If we can spot early
+warning signs from the engine's own sensor data, maintenance can be scheduled proactively
+instead of reactively.
 
-## Project Question
+## The Idea
 
+We compare two different deep learning techniques, each asking a different question about the
+same degradation process, rather than comparing two variants of the same technique:
 
-> Can we detect when a turbofan engine is beginning to fail before the actual failure occurs?
+- **TCN ("Was the model surprised?")** — predicts the next sensor reading from recent flight
+  history. A large gap between prediction and reality signals a sudden, abrupt change in engine
+  behaviour.
+- **Autoencoder ("Does it recognize the whole picture?")** — tries to reconstruct an entire
+  window of several flights from what it has memorized as "healthy". Failing to reconstruct it
+  well signals that the overall pattern has gradually drifted away from normal.
 
+We are **not** trying to find which technique is objectively best at predicting wear in general.
+We're testing which of the two questions gives the clearest warning for *this specific kind* of
+wear (gradual mechanical degradation, not sudden shocks).
 
-The project compares two deep learning approaches for detecting changes in engine sensor data:
-
-
-- **TCN (Temporal Convolutional Network)** – predicts upcoming sensor behaviour based on previous engine cycles. Increasing prediction error may indicate that the engine behaviour is changing.
-- **Autoencoder** – learns patterns associated with healthy engine operation. Increasing reconstruction error may indicate that the engine is behaving differently from the healthy patterns learned by the model.
-
-
-The goal is not to directly compare the raw error values of the two models, but to evaluate how well their warning signals relate to actual engine degradation.
-
+Both models are trained **only** on the early, healthy cycles of each engine — neither model
+ever sees a real failure during training. The alarm is simply the growing gap between what the
+model expects/remembers as healthy and what it actually observes later in the engine's life.
+This is the same core principle as the credit-card fraud example from the lecture (train only on
+legitimate transactions).
 
 ## Dataset
 
+**NASA Turbofan Jet Engine Degradation Simulation (C-MAPSS)** — simulated sensor data (not real
+recorded flights), subset **FD001** (one operating condition, one fault mode).
 
-**NASA C-MAPSS Turbofan Engine Degradation Dataset**
-https://www.kaggle.com/datasets/behrad3d/nasa-cmaps
+Public mirror (no login required): https://phm-datasets.s3.amazonaws.com/NASA/6.+Turbofan+Engine+Degradation+Simulation+Data+Set.zip
+(also listed on Kaggle: https://www.kaggle.com/datasets/behrad3d/nasa-cmaps)
 
+Each row is one operating **cycle** (roughly one flight). FD001 contains:
+- **train_FD001.txt** — 100 engines, run from healthy to failure (variable length per engine,
+  ranging from ~128 to ~360-plus cycles)
+- **test_FD001.txt** — 100 engines, cut off before failure
+- **RUL_FD001.txt** — the true "Remaining Useful Life" for each test engine at the point the
+  recording was cut off — this is our ground-truth answer key
 
-The project uses the **FD001** subset:
+Each row has 26 columns: `unit_number`, `time_in_cycles`, 3 operational settings, and 21 sensor
+measurements.
 
+## Fair Comparison
 
-- `train_FD001.txt`
-- `test_FD001.txt`
-- `RUL_FD001.txt`
+TCN's prediction error and the Autoencoder's reconstruction error are **not** on the same scale
+and can't be compared directly. Instead, both models are evaluated at the same cycles, on the
+same test engines, against the same ground truth (true RUL), using two shared metrics:
 
+- **Correlation** — how strongly each alarm signal correlates with falling RUL
+- **Lead time** — how many cycles before failure each alarm signal crossed a warning threshold
 
-FD001 contains one operating condition and one fault mode.
+## Common Settings
 
+So that everyone's models stay comparable:
 
-The dataset consists of simulated run-to-failure data from turbofan engines. Each engine is monitored through multiple sensor measurements over a sequence of operating cycles.
+- Subset **FD001** only (`train_FD001.txt`, `test_FD001.txt`, `RUL_FD001.txt`)
+- Same sensor selection (drop the ~7 sensors that are effectively constant)
+- Same window size (e.g. 30 cycles) for both TCN's history window and the Autoencoder's window
+- Same definition of "healthy period" (e.g. the first ~30% of each training engine's life)
 
+## Dataset Setup
 
-## Method
+Data is not committed to this repository (`data/raw/` is gitignored). Each team member should:
 
+1. Download the dataset from the link above (or from Kaggle)
+2. Extract it so the three FD001 files end up at:
 
-To make the comparison between the models as consistent as possible:
+       data/raw/CMAPSSData/train_FD001.txt
+       data/raw/CMAPSSData/test_FD001.txt
+       data/raw/CMAPSSData/RUL_FD001.txt
 
+## Team & Presentation Split
 
-- Both models use the same sensor selection.
-- Approximately constant sensors are removed.
-- Both models use the same sequence/window length.
-- A window size of approximately **30 cycles** is used.
-- The first approximately **30% of each training engine's lifetime** is considered healthy operation.
-- Both models are trained using healthy engine data.
+- **Emmy** — slides 1–5: introduction + TCN model
+- **Mahtab** — slides 6–10: Autoencoder model
+- **Spirit** — slides 11–15: connects both models back to the lecture's architecture diagrams,
+  explains how they work at a higher level, and closes with business value / conclusion
 
+## Git Workflow
 
-The models are then evaluated on later engine cycles that were not included in the healthy training data.
-
-
-## Evaluation
-
-
-The model warning signals are evaluated against the dataset's **Remaining Useful Life (RUL)**.
-
-
-Two main evaluation methods are used:
-
-
-1. **Correlation with RUL**  
-   Measures how strongly the model's warning signal relates to decreasing remaining engine life.
-
-
-2. **Early Warning Time**  
-   Measures how many cycles before failure the model's warning signal crosses a defined anomaly threshold.
-
-
-## Project Structure
-
-
-```text
-turbofan-failure-detection/
-│
-├── data/
-│   ├── raw/
-│   └── processed/
-├── notebooks/
-│   ├── tcn.ipynb
-│   ├── autoencoder.ipynb
-│   └── analysis.ipynb
-├── reports/
-│   └── figures/
-├── .gitignore
-├── README.md
-└── requirements.txt
-```
-
-
-## Models
-
-
-### TCN
-Temporal modelling of engine sensor sequences to detect unexpected changes in future sensor behaviour.
-
-
-### Autoencoder
-Reconstruction-based anomaly detection where deviations from learned healthy engine behaviour produce increasing reconstruction errors.
-
-
-## Team
-
-
-- **Emmy**
-- **Mahtab**
-- **Spirit**
-
-
-## Status
-
-
-Work in progress.
+`dev` is the shared branch. Each person branches off `dev` into their own `feat/<name>` branch
+and owns one notebook in `notebooks/`, to avoid merge conflicts.

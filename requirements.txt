@@ -1,7 +1,9 @@
+tensorflow
 numpy
 pandas
 matplotlib
+seaborn
 scikit-learn
-tensorflow
-jupyter
 ipykernel
+nbconvert
+nbclient
