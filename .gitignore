@@ -1,0 +1,24 @@
+Virtual environment
+.venv/
+venv/
+
+Python
+pycache/
+.pyc
+
+Jupyter
+.ipynb_checkpoints/
+
+VS Code
+.vscode/
+
+Environment variables
+.env
+
+Raw and processed data
+data/raw/
+data/processed/*
+
+Keep folders in Git
+!data/raw/.gitkeep
+!data/processed/.gitkeep
