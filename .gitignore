@@ -1,24 +1,9 @@
-Virtual environment
 .venv/
-venv/
-
-Python
-pycache/
-.pyc
-
-Jupyter
+__pycache__/
 .ipynb_checkpoints/
 
-VS Code
-.vscode/
-
-Environment variables
-.env
-
-Raw and processed data
-data/raw/
-data/processed/*
-
-Keep folders in Git
+data/raw/*
 !data/raw/.gitkeep
+
+data/processed/*
 !data/processed/.gitkeep
